@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathMeasure
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
@@ -26,11 +25,9 @@ class DrawingView(context: Context) : View(context) {
     private var topIndentation: Float = 0f
     private var mStartX: Float = 0f
     private var mStartY: Float = 0f
-    var currentShape = Shapes.CIRCLE
+    var currentTool = Tools.CIRCLE
     private var isDrawing = false
     private var isDrawingEnded = false
-
-    var find = false
 
     private val pathsArray = ArrayList<PathData>()
 
@@ -65,22 +62,20 @@ class DrawingView(context: Context) : View(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         leftIndentation = event.x
         topIndentation = event.y
-
-        if (find) {
-            val removePaths = isMatch(leftIndentation, topIndentation)
-            pathsArray.removeAll(removePaths)
-            invalidate()
-            return true
-        }
-
-        when (currentShape) {
-            Shapes.RECTANGLE -> onTouchEventRectangle(event)
-            Shapes.CIRCLE -> onTouchEventCircle(event)
-            Shapes.LINE ->  {}//onTouchEventLine(event)
-            Shapes.SMOOTH_LINE -> {}//onTouchEventSmoothLine(event)
-            Shapes.ERASER -> {}//onTouchEventSmoothLine(event)
+        when (currentTool) {
+            Tools.RECTANGLE -> onTouchEventRectangle(event)
+            Tools.CIRCLE -> onTouchEventCircle(event)
+            Tools.LINE ->  {}//onTouchEventLine(event)
+            Tools.PEN -> {}//onTouchEventSmoothLine(event)
+            Tools.ERASER -> onTouchEventEraser(event)
         }
         return true
+    }
+
+    private fun onTouchEventEraser(event: MotionEvent) {
+        val removePaths = isMatch(leftIndentation, topIndentation)
+        pathsArray.removeAll(removePaths)
+        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -90,12 +85,12 @@ class DrawingView(context: Context) : View(context) {
         }
 
         if (isDrawing) {
-            when (currentShape) {
-                Shapes.RECTANGLE -> onDrawRectangle(canvas)
-                Shapes.CIRCLE -> onDrawCircle(canvas)
-                Shapes.LINE -> {}//onDrawLine(canvas)
-                Shapes.SMOOTH_LINE -> {}
-                Shapes.ERASER -> {}
+            when (currentTool) {
+                Tools.RECTANGLE -> onDrawRectangle(canvas)
+                Tools.CIRCLE -> onDrawCircle(canvas)
+                Tools.LINE -> {}//onDrawLine(canvas)
+                Tools.PEN -> {}
+                Tools.ERASER -> {}
             }
         }
     }
@@ -109,7 +104,6 @@ class DrawingView(context: Context) : View(context) {
                 mStartY = topIndentation
                 invalidate()
             }
-
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
@@ -143,7 +137,6 @@ class DrawingView(context: Context) : View(context) {
                 val pos = FloatArray(2)
                 pathMeasure.getPosTan(i.toFloat(), pos, null)
 
-
                 val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
 
                 points.add(floatPoint)
@@ -155,7 +148,37 @@ class DrawingView(context: Context) : View(context) {
         }
     }
 
+    private fun drawCircle(canvas: Canvas, paint: Paint) {
+        val top = if (mStartY > topIndentation) topIndentation else mStartY
+        val left = if (mStartX > leftIndentation) leftIndentation else mStartX
+        val bottom = if (mStartY > topIndentation) mStartY else topIndentation
+        val right = if (mStartX > leftIndentation) mStartX else leftIndentation
 
+        val path = Path().apply {
+            addOval(left, top, right, bottom, Path.Direction.CW)
+        }
+        val points = ArrayList<FloatPoint>()
+
+        if (!isDrawing) {
+            val pathMeasure = PathMeasure(path, false)
+            val distance: Float = pathMeasure.length
+
+            val ignore = 10
+            for (i in 0..distance.toInt() step ignore) {
+                val pos = FloatArray(2)
+                pathMeasure.getPosTan(i.toFloat(), pos, null)
+
+                val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
+
+                points.add(floatPoint)
+            }
+
+            pathsArray.add(PathData(path, points))
+            canvas.drawPath(path, paint)
+        }
+    }
+
+//
 //
 //    /**Line*/
 //    private fun onDrawLine(canvas: Canvas) {
@@ -183,10 +206,10 @@ class DrawingView(context: Context) : View(context) {
 //            }
 //        }
 //    }
-//
+
     /**Circle*/
     private fun onDrawCircle(canvas: Canvas) {
-        canvas.drawCircle(mStartX, mStartY, calculateRadius(mStartX, mStartY, leftIndentation, topIndentation), mPaint)
+        drawCircle(canvas, mPaint)
     }
 
     private fun onTouchEventCircle(event: MotionEvent) {
@@ -201,10 +224,7 @@ class DrawingView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
-                mCanvas!!.drawCircle(
-                    mStartX, mStartY,
-                    calculateRadius(mStartX, mStartY, leftIndentation, topIndentation), mPaintFinal
-                )
+                drawCircle(mCanvas!!, mPaintFinal)
                 invalidate()
             }
         }
@@ -255,17 +275,17 @@ class DrawingView(context: Context) : View(context) {
 //    }
 
 
-    fun toCheckMode() {
-        find = true
-
-        pathsArray.forEachIndexed { index, it ->
-            Log.d("fffffffffffffffrr1", "index: = $index")
-            it.points.forEach { point ->
-                Log.d("fffffffffffffffrr1", "point: = ${point.toString()}")
-            }
-
-        }
-    }
+//    fun eraserMode() {
+//        find = true
+//
+////        pathsArray.forEachIndexed { index, it ->
+////            Log.d("fffffffffffffffrr1", "index: = $index")
+////            it.points.forEach { point ->
+////                Log.d("fffffffffffffffrr1", "point: = ${point.toString()}")
+////            }
+////
+////        }
+//    }
 
     private fun isMatch(left: Float, top: Float): Set<PathData> {
         val delta = 50

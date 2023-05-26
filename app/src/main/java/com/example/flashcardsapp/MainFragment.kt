@@ -6,7 +6,6 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.LinearLayout
 import com.google.android.material.button.MaterialButtonToggleGroup
 
@@ -31,19 +30,15 @@ class MainFragment : Fragment() {
         val l = view.findViewById<LinearLayout>(R.id.ll)
         l.addView(drawingView)
 
-//        view.findViewById<Button>(R.id.button1).setOnClickListener {
-//            drawingView.toCheckMode()
-//        }
-
         view.findViewById<MaterialButtonToggleGroup>(R.id.toggleGroup).addOnButtonCheckedListener{
             toggleButtonGroup, checkedId, isChecked ->
             if (isChecked) {
                 when (checkedId) {
-                    R.id.rect -> drawingView.currentShape = Shapes.RECTANGLE
-                    R.id.circle -> drawingView.currentShape = Shapes.CIRCLE
-                    R.id.line -> drawingView.currentShape = Shapes.LINE
-                    R.id.pen ->  drawingView.currentShape = Shapes.SMOOTH_LINE
-                    R.id.eraser -> drawingView.currentShape = Shapes.ERASER
+                    R.id.rect -> drawingView.currentTool = Tools.RECTANGLE
+                    R.id.circle -> drawingView.currentTool = Tools.CIRCLE
+                    R.id.line -> drawingView.currentTool = Tools.LINE
+                    R.id.pen ->  drawingView.currentTool = Tools.PEN
+                    R.id.eraser -> drawingView.currentTool = Tools.ERASER
                 }
             } else
                 Log.d("23333333", "else")

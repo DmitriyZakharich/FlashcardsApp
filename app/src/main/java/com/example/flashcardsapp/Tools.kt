@@ -1,9 +1,9 @@
 package com.example.flashcardsapp
 
-enum class Shapes {
+enum class Tools {
     RECTANGLE,
     CIRCLE,
     LINE,
-    SMOOTH_LINE,
+    PEN,
     ERASER
 }
