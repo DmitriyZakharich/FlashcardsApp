@@ -23,11 +23,13 @@ class DrawingView(context: Context) : View(context) {
     private var mCanvas: Canvas? = null
     private var leftIndentation: Float = 0f
     private var topIndentation: Float = 0f
-    private var mStartX: Float = 0f
-    private var mStartY: Float = 0f
+    private var startX: Float = 0f
+    private var startY: Float = 0f
     var currentTool = Tools.CIRCLE
     private var isDrawing = false
     private var isDrawingEnded = false
+    private val TOUCH_TOLERANCE = 4f
+    private val TOUCH_STROKE_WIDTH = 5f
 
     private val pathsArray = ArrayList<PathData>()
 
@@ -65,7 +67,7 @@ class DrawingView(context: Context) : View(context) {
         when (currentTool) {
             Tools.RECTANGLE -> onTouchEventRectangle(event)
             Tools.CIRCLE -> onTouchEventCircle(event)
-            Tools.LINE ->  {}//onTouchEventLine(event)
+            Tools.LINE -> onTouchEventLine(event)
             Tools.PEN -> {}//onTouchEventSmoothLine(event)
             Tools.ERASER -> onTouchEventEraser(event)
         }
@@ -80,6 +82,7 @@ class DrawingView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
         pathsArray.forEach {
             canvas.drawPath(it.path, mPaint)
         }
@@ -88,7 +91,7 @@ class DrawingView(context: Context) : View(context) {
             when (currentTool) {
                 Tools.RECTANGLE -> onDrawRectangle(canvas)
                 Tools.CIRCLE -> onDrawCircle(canvas)
-                Tools.LINE -> {}//onDrawLine(canvas)
+                Tools.LINE -> onDrawLine(canvas)
                 Tools.PEN -> {}
                 Tools.ERASER -> {}
             }
@@ -100,63 +103,36 @@ class DrawingView(context: Context) : View(context) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 isDrawing = true
-                mStartX = leftIndentation
-                mStartY = topIndentation
+                startX = leftIndentation
+                startY = topIndentation
                 invalidate()
             }
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
-                drawRectangle(mCanvas!!, mPaintFinal)
+                drawShape(mCanvas!!, mPaintFinal)
                 invalidate()
             }
         }
     }
 
     private fun onDrawRectangle(canvas: Canvas) {
-        drawRectangle(canvas, mPaint)
+        drawShape(canvas, mPaint)
     }
 
-    private fun drawRectangle(canvas: Canvas, paint: Paint) {
-        val top = if (mStartY > topIndentation) topIndentation else mStartY
-        val left = if (mStartX > leftIndentation) leftIndentation else mStartX
-        val bottom = if (mStartY > topIndentation) mStartY else topIndentation
-        val right = if (mStartX > leftIndentation) mStartX else leftIndentation
+    private fun drawShape(canvas: Canvas, paint: Paint) {
+        val top = if (startY > topIndentation) topIndentation else startY
+        val left = if (startX > leftIndentation) leftIndentation else startX
+        val bottom = if (startY > topIndentation) startY else topIndentation
+        val right = if (startX > leftIndentation) startX else leftIndentation
 
-        val path = Path().apply {
-            addRect(left, top, right, bottom, Path.Direction.CW)
+        val path = Path()
+        when (currentTool) {
+            Tools.RECTANGLE -> path.addRect(left, top, right, bottom, Path.Direction.CW)
+            Tools.CIRCLE -> path.addOval(left, top, right, bottom, Path.Direction.CW)
+            else -> {}
         }
-        val points = ArrayList<FloatPoint>()
 
-        if (!isDrawing) {
-            val pathMeasure = PathMeasure(path, false)
-            val distance: Float = pathMeasure.length
-
-            val ignore = 10
-            for (i in 0..distance.toInt() step ignore) {
-                val pos = FloatArray(2)
-                pathMeasure.getPosTan(i.toFloat(), pos, null)
-
-                val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
-
-                points.add(floatPoint)
-            }
-
-            pathsArray.add(PathData(path, points))
-
-            canvas.drawPath(path, paint)
-        }
-    }
-
-    private fun drawCircle(canvas: Canvas, paint: Paint) {
-        val top = if (mStartY > topIndentation) topIndentation else mStartY
-        val left = if (mStartX > leftIndentation) leftIndentation else mStartX
-        val bottom = if (mStartY > topIndentation) mStartY else topIndentation
-        val right = if (mStartX > leftIndentation) mStartX else leftIndentation
-
-        val path = Path().apply {
-            addOval(left, top, right, bottom, Path.Direction.CW)
-        }
         val points = ArrayList<FloatPoint>()
 
         if (!isDrawing) {
@@ -178,68 +154,80 @@ class DrawingView(context: Context) : View(context) {
         }
     }
 
-//
-//
-//    /**Line*/
-//    private fun onDrawLine(canvas: Canvas) {
-//        val dx = Math.abs(mx - mStartX)
-//        val dy = Math.abs(my - mStartY)
-//        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-//            canvas.drawLine(mStartX, mStartY, mx, my, mPaint)
-//        }
-//    }
-//
-//    private fun onTouchEventLine(event: MotionEvent) {
-//        when (event.action) {
-//            MotionEvent.ACTION_DOWN -> {
-//                isDrawing = true
-//                mStartX = mx
-//                mStartY = my
-//                invalidate()
-//            }
-//
-//            MotionEvent.ACTION_MOVE -> invalidate()
-//            MotionEvent.ACTION_UP -> {
-//                isDrawing = false
-//                mCanvas!!.drawLine(mStartX, mStartY, mx, my, mPaintFinal)
-//                invalidate()
-//            }
-//        }
-//    }
+    /**Line*/
+    private fun onDrawLine(canvas: Canvas) {
+        val dx = Math.abs(leftIndentation - startX)
+        val dy = Math.abs(topIndentation - startY)
+        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+            drawLine(canvas, mPaint)
+        }
+    }
+
+    private fun onTouchEventLine(event: MotionEvent) {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                isDrawing = true
+                startX = leftIndentation
+                startY = topIndentation
+                invalidate()
+            }
+            MotionEvent.ACTION_MOVE -> invalidate()
+            MotionEvent.ACTION_UP -> {
+                isDrawing = false
+                drawLine(mCanvas!!, mPaintFinal)
+                invalidate()
+            }
+        }
+    }
+
+    private fun drawLine(canvas: Canvas, paint: Paint) {
+        val path = Path().apply {
+            moveTo(startX, startY)
+            lineTo(leftIndentation, topIndentation)
+        }
+        val points = ArrayList<FloatPoint>()
+
+        if (!isDrawing) {
+            val pathMeasure = PathMeasure(path, false)
+            val distance: Float = pathMeasure.length
+
+            val ignore = 10
+            for (i in 0..distance.toInt() step ignore) {
+                val pos = FloatArray(2)
+                pathMeasure.getPosTan(i.toFloat(), pos, null)
+
+                val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
+                points.add(floatPoint)
+            }
+
+            pathsArray.add(PathData(path, points))
+            canvas.drawPath(path, paint)
+        }
+    }
 
     /**Circle*/
     private fun onDrawCircle(canvas: Canvas) {
-        drawCircle(canvas, mPaint)
+        drawShape(canvas, mPaint)
     }
 
     private fun onTouchEventCircle(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 isDrawing = true
-                mStartX = leftIndentation
-                mStartY = topIndentation
+                startX = leftIndentation
+                startY = topIndentation
                 invalidate()
             }
 
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
-                drawCircle(mCanvas!!, mPaintFinal)
+                drawShape(mCanvas!!, mPaintFinal)
                 invalidate()
             }
         }
     }
 
-    private fun calculateRadius(x1: Float, y1: Float, x2: Float, y2: Float): Float {
-        return Math.sqrt(
-            Math.pow((x1 - x2).toDouble(), 2.0) +
-                    Math.pow((y1 - y2).toDouble(), 2.0)
-        ).toFloat()
-    }
-
-
-//
-//
 //    /**SmoothLine*/
 //    private fun onTouchEventSmoothLine(event: MotionEvent) {
 //        when (event.action) {
@@ -274,19 +262,6 @@ class DrawingView(context: Context) : View(context) {
 //        }
 //    }
 
-
-//    fun eraserMode() {
-//        find = true
-//
-////        pathsArray.forEachIndexed { index, it ->
-////            Log.d("fffffffffffffffrr1", "index: = $index")
-////            it.points.forEach { point ->
-////                Log.d("fffffffffffffffrr1", "point: = ${point.toString()}")
-////            }
-////
-////        }
-//    }
-
     private fun isMatch(left: Float, top: Float): Set<PathData> {
         val delta = 50
         val leftInt = left.toInt()
@@ -303,7 +278,6 @@ class DrawingView(context: Context) : View(context) {
                 }
             }
         }
-
         return removePaths
     }
 }
