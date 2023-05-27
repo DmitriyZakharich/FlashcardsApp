@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathMeasure
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
@@ -29,7 +30,6 @@ class DrawingView(context: Context) : View(context) {
     private var isDrawing = false
     private var isDrawingEnded = false
     private val TOUCH_TOLERANCE = 4f
-    private val TOUCH_STROKE_WIDTH = 5f
 
     private val pathsArray = ArrayList<PathData>()
 
@@ -51,7 +51,7 @@ class DrawingView(context: Context) : View(context) {
         mPaintFinal.strokeWidth = 10f
     }
 
-    private fun reset() {
+    private fun resetPath() {
         mPath = Path()
     }
 
@@ -68,24 +68,22 @@ class DrawingView(context: Context) : View(context) {
             Tools.RECTANGLE -> onTouchEventRectangle(event)
             Tools.CIRCLE -> onTouchEventCircle(event)
             Tools.LINE -> onTouchEventLine(event)
-            Tools.PEN -> {}//onTouchEventSmoothLine(event)
+            Tools.PEN -> onTouchEventSmoothLine(event)
             Tools.ERASER -> onTouchEventEraser(event)
         }
         return true
-    }
-
-    private fun onTouchEventEraser(event: MotionEvent) {
-        val removePaths = isMatch(leftIndentation, topIndentation)
-        pathsArray.removeAll(removePaths)
-        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
         pathsArray.forEach {
-            canvas.drawPath(it.path, mPaint)
+            canvas.drawPath(it.path, mPaintFinal)
         }
+
+        //Preliminary drawing of SmoothLine
+        if (isDrawing)
+            canvas.drawPath(mPath, mPaint)
 
         if (isDrawing) {
             when (currentTool) {
@@ -150,8 +148,21 @@ class DrawingView(context: Context) : View(context) {
             }
 
             pathsArray.add(PathData(path, points))
-            canvas.drawPath(path, paint)
         }
+
+        canvas.drawPath(path, paint)
+    }
+
+    /**Eraser*/
+    private fun onTouchEventEraser(event: MotionEvent) {
+        Log.d("TAG11111111", "size = ${pathsArray.size}")
+
+        pathsArray.forEach {
+            Log.d("TAG11111111", "${it.path}")
+        }
+        val removePaths = isMatch(leftIndentation, topIndentation)
+        pathsArray.removeAll(removePaths)
+        invalidate()
     }
 
     /**Line*/
@@ -201,8 +212,8 @@ class DrawingView(context: Context) : View(context) {
             }
 
             pathsArray.add(PathData(path, points))
-            canvas.drawPath(path, paint)
         }
+        canvas.drawPath(path, paint)
     }
 
     /**Circle*/
@@ -228,39 +239,47 @@ class DrawingView(context: Context) : View(context) {
         }
     }
 
-//    /**SmoothLine*/
-//    private fun onTouchEventSmoothLine(event: MotionEvent) {
-//        when (event.action) {
-//            MotionEvent.ACTION_DOWN -> {
-//                isDrawing = true
-//                mStartX = mx
-//                mStartY = my
-//                mPath.reset()
-//                mPath.moveTo(mx, my)
-//                invalidate()
-//            }
-//
-//            MotionEvent.ACTION_MOVE -> {
-//                val dx = abs(mx - mStartX)
-//                val dy = abs(my - mStartY)
-//                if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-//                    mPath.quadTo(mStartX, mStartY, (mx + mStartX) / 2, (my + mStartY) / 2)
-//                    mStartX = mx
-//                    mStartY = my
-//                }
-//                mCanvas!!.drawPath(mPath, mPaint)
-//                invalidate()
-//            }
-//
-//            MotionEvent.ACTION_UP -> {
-//                isDrawing = false
-//                mPath.lineTo(mStartX, mStartY)
-//                mCanvas!!.drawPath(mPath, mPaintFinal)
-//                mPath.reset()
-//                invalidate()
-//            }
-//        }
-//    }
+    /**SmoothLine*/
+    private fun onTouchEventSmoothLine(event: MotionEvent) {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                isDrawing = true
+                startX = leftIndentation
+                startY = topIndentation
+                resetPath()
+                mPath.moveTo(leftIndentation, topIndentation)
+                invalidate()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = Math.abs(leftIndentation - startX)
+                val dy = Math.abs(topIndentation - startY)
+                if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                    mPath.quadTo(startX, startY, (leftIndentation + startX) / 2, (topIndentation + startY) / 2)
+                    startX = leftIndentation
+                    startY = topIndentation
+                }
+                invalidate()
+            }
+
+            MotionEvent.ACTION_UP -> {
+                isDrawing = false
+                val points = ArrayList<FloatPoint>()
+                val pathMeasure = PathMeasure(mPath, false)
+                val distance: Float = pathMeasure.length
+
+                val ignore = 10
+                for (i in 0..distance.toInt() step ignore) {
+                    val pos = FloatArray(2)
+                    pathMeasure.getPosTan(i.toFloat(), pos, null)
+                    val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - from top, №0 - from left
+                    points.add(floatPoint)
+                }
+                pathsArray.add(PathData(mPath, points))
+                resetPath()
+                invalidate()
+            }
+        }
+    }
 
     private fun isMatch(left: Float, top: Float): Set<PathData> {
         val delta = 50
