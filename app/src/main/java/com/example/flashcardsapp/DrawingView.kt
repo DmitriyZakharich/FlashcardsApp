@@ -9,6 +9,7 @@ import android.graphics.PathMeasure
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import java.util.LinkedList
 
 /**
  * Drawing shapes with fingers
@@ -31,7 +32,7 @@ class DrawingView(context: Context) : View(context) {
     private var isDrawing = false
     private var isDrawingEnded = false
     private val TOUCH_TOLERANCE = 4f
-    private val pathsArray = ArrayList<PathData>()
+    private val pathsArray = LinkedList<PathData>()
     private val movePaths = mutableSetOf<PathData>()
 
     init {
@@ -72,6 +73,7 @@ class DrawingView(context: Context) : View(context) {
             Tools.PEN -> onTouchEventSmoothLine(event)
             Tools.ERASER -> onTouchEventEraser()
             Tools.MOVE -> onTouchEventMove(event)
+            Tools.SELECT -> onTouchEventSelect(event)
         }
         return true
     }
@@ -94,6 +96,7 @@ class DrawingView(context: Context) : View(context) {
                 Tools.PEN -> {}
                 Tools.ERASER -> {}
                 Tools.MOVE -> {}
+                Tools.SELECT -> {}
             }
         }
     }
@@ -282,9 +285,7 @@ class DrawingView(context: Context) : View(context) {
     private fun onTouchEventMove(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                movePaths.addAll(pathsArray.filter {
-                    isMatch(leftIndentation, topIndentation).contains(it)
-                })
+                movePaths.addAll(isMatch(leftIndentation, topIndentation))
                 startX = leftIndentation
                 startY = topIndentation
             }
@@ -316,6 +317,10 @@ class DrawingView(context: Context) : View(context) {
                 movePaths.clear()
             }
         }
+    }
+
+    private fun onTouchEventSelect(event: MotionEvent) {
+
     }
 
     private fun isMatch(left: Float, top: Float): Set<PathData> {

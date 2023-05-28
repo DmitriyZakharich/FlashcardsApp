@@ -1,13 +1,11 @@
 package com.example.flashcardsapp
 
-import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButtonToggleGroup
 
 
@@ -20,7 +18,6 @@ class MainFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_main, container, false)
     }
 
-    @SuppressLint("ResourceType")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -42,6 +39,7 @@ class MainFragment : Fragment() {
                     R.id.pen ->  drawingView.currentTool = Tools.PEN
                     R.id.eraser -> drawingView.currentTool = Tools.ERASER
                     R.id.move -> drawingView.currentTool = Tools.MOVE
+                    R.id.select -> drawingView.currentTool = Tools.SELECT
                 }
             }
         }
