@@ -16,6 +16,7 @@ import android.view.View
  * */
 
 class DrawingView(context: Context) : View(context) {
+
     private var mPaint: Paint = Paint(Paint.DITHER_FLAG)
     private var mPaintFinal: Paint = Paint(Paint.DITHER_FLAG)
     private var mPath = Path()
@@ -31,6 +32,7 @@ class DrawingView(context: Context) : View(context) {
     private var isDrawingEnded = false
     private val TOUCH_TOLERANCE = 4f
     private val pathsArray = ArrayList<PathData>()
+    private val movePaths = mutableSetOf<PathData>()
 
     init {
         mPaint.isAntiAlias = true
@@ -278,24 +280,40 @@ class DrawingView(context: Context) : View(context) {
 
     /**Move*/
     private fun onTouchEventMove(event: MotionEvent) {
-//        val movePaths = isMatch(leftIndentation, topIndentation)
-
-        val dx = Math.abs(leftIndentation - startX)
-        val dy = Math.abs(topIndentation - startY)
-        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    startX = leftIndentation
-                    startY = topIndentation
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    pathsArray.forEach {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                movePaths.addAll(pathsArray.filter {
+                    isMatch(leftIndentation, topIndentation).contains(it)
+                })
+                startX = leftIndentation
+                startY = topIndentation
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = Math.abs(leftIndentation - startX)
+                val dy = Math.abs(topIndentation - startY)
+                if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+                    movePaths.forEach {
                         it.path.offset(leftIndentation - startX, topIndentation - startY)
                     }
                     startX = leftIndentation
                     startY = topIndentation
                     invalidate()
                 }
+            }
+            MotionEvent.ACTION_UP -> {
+                movePaths.forEach {
+                    it.points.clear()
+                    val pathMeasure = PathMeasure(it.path, false)
+                    val distance: Float = pathMeasure.length
+                    val ignore = 10
+                    for (i in 0..distance.toInt() step ignore) {
+                        val pos = FloatArray(2)
+                        pathMeasure.getPosTan(i.toFloat(), pos, null)
+                        val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
+                        it.points.add(floatPoint)
+                    }
+                }
+                movePaths.clear()
             }
         }
     }
