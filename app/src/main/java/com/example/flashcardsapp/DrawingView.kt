@@ -33,7 +33,7 @@ class DrawingView(context: Context) : View(context) {
     private var isDrawingEnded = false
     private val TOUCH_TOLERANCE = 4f
     private val pathsArray = LinkedList<PathData>()
-    private val movePaths = mutableSetOf<PathData>()
+    private val selectedPaths = mutableSetOf<PathData>()
 
     init {
         mPaint.isAntiAlias = true
@@ -85,7 +85,7 @@ class DrawingView(context: Context) : View(context) {
         }
 
         //Preliminary drawing of SmoothLine
-        if (isDrawing)
+        if (isDrawing)      //TODO Добавить условие CurrentTool == Tools.PEN?
             canvas.drawPath(mPath, mPaint)
 
         if (isDrawing) {
@@ -96,7 +96,7 @@ class DrawingView(context: Context) : View(context) {
                 Tools.PEN -> {}
                 Tools.ERASER -> {}
                 Tools.MOVE -> {}
-                Tools.SELECT -> {}
+                Tools.SELECT -> onDrawSelectedField(canvas)
             }
         }
     }
@@ -285,7 +285,7 @@ class DrawingView(context: Context) : View(context) {
     private fun onTouchEventMove(event: MotionEvent) {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                movePaths.addAll(isMatch(leftIndentation, topIndentation))
+                selectedPaths.addAll(isMatch(leftIndentation, topIndentation))
                 startX = leftIndentation
                 startY = topIndentation
             }
@@ -293,7 +293,7 @@ class DrawingView(context: Context) : View(context) {
                 val dx = Math.abs(leftIndentation - startX)
                 val dy = Math.abs(topIndentation - startY)
                 if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
-                    movePaths.forEach {
+                    selectedPaths.forEach {
                         it.path.offset(leftIndentation - startX, topIndentation - startY)
                     }
                     startX = leftIndentation
@@ -302,7 +302,7 @@ class DrawingView(context: Context) : View(context) {
                 }
             }
             MotionEvent.ACTION_UP -> {
-                movePaths.forEach {
+                selectedPaths.forEach {
                     it.points.clear()
                     val pathMeasure = PathMeasure(it.path, false)
                     val distance: Float = pathMeasure.length
@@ -314,31 +314,125 @@ class DrawingView(context: Context) : View(context) {
                         it.points.add(floatPoint)
                     }
                 }
-                movePaths.clear()
+                selectedPaths.clear()
             }
         }
     }
 
+    /**Selected*/
     private fun onTouchEventSelect(event: MotionEvent) {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                isDrawing = true
+                startX = leftIndentation
+                startY = topIndentation
+                invalidate()
+            }
+            MotionEvent.ACTION_MOVE -> invalidate()
+            MotionEvent.ACTION_UP -> {
+                isDrawing = false
+                drawSelectedField(mCanvas!!, mPaint)
 
+//                selectedPaths.forEach {
+//                    it.points.clear()
+//                    val pathMeasure = PathMeasure(it.path, false)
+//                    val distance: Float = pathMeasure.length
+//                    val ignore = 10
+//                    for (i in 0..distance.toInt() step ignore) {
+//                        val pos = FloatArray(2)
+//                        pathMeasure.getPosTan(i.toFloat(), pos, null)
+//                        val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
+//                        it.points.add(floatPoint)
+//                    }
+//                }
+
+//                selectedPaths.clear()   //TODO Сделать отмену выделения
+            }
+        }
+    }
+
+    private fun onDrawSelectedField(canvas: Canvas) {
+        drawSelectedField(canvas, mPaint)
+    }
+
+    private fun drawSelectedField(canvas: Canvas, paint: Paint) {
+        val top = if (startY > topIndentation) topIndentation else startY
+        val left = if (startX > leftIndentation) leftIndentation else startX
+        val bottom = if (startY > topIndentation) startY else topIndentation
+        val right = if (startX > leftIndentation) startX else leftIndentation
+
+        val path = Path()
+        path.addRect(left, top, right, bottom, Path.Direction.CW)
+
+        if (!isDrawing){
+            pathsArray.forEach {
+                it.points.forEach { point ->
+                    if ((top..bottom).contains(point.topIndentation) &&
+                        (left..right).contains(leftIndentation)) {
+                        selectedPaths.add(it)
+                    }
+                }
+            }
+
+            var maxTop = 0f
+            var maxLeft = 0f
+            var maxBottom = 0f
+            var maxRight = 0f
+
+            if (selectedPaths.size > 0) {0
+                maxTop = selectedPaths.first().points.first().topIndentation
+                maxBottom = maxTop
+                maxLeft = selectedPaths.first().points.first().leftIndentation
+                maxRight = maxLeft
+
+
+                selectedPaths.forEach {
+                    it.points.forEach { point ->
+                        if (point.topIndentation < maxTop) maxTop = point.topIndentation
+                        if (point.topIndentation > maxBottom) maxBottom = point.topIndentation
+                        if (point.leftIndentation < maxLeft) maxLeft = point.leftIndentation
+                        if (point.leftIndentation > maxRight) maxRight = point.leftIndentation
+                    }
+                }
+
+                val p = Path()
+                p.addRect(maxLeft, maxTop, maxRight, maxBottom, Path.Direction.CW)
+                pathsArray.add(PathData(p, ArrayList()))
+                invalidate()
+            }
+
+            Log.d("2222deTAG", "size: ${selectedPaths.size}")
+            Log.d("2222deTAG", "maxTop: $maxTop")
+            Log.d("2222deTAG", "maxLeft: $maxLeft")
+            Log.d("2222deTAG", "maxRight: $maxRight")
+            Log.d("2222deTAG", "maxBottom: $maxBottom")
+
+//            selectedPaths.forEach{ logPath ->
+//                Log.d("2222deTAG", "selectedPaths: ${logPath.points}")
+//            }
+
+        }
+
+        else
+            canvas.drawPath(path, paint)
     }
 
     private fun isMatch(left: Float, top: Float): Set<PathData> {
         val delta = 50
         val leftInt = left.toInt()
         val topInt = top.toInt()
-        val removePaths = mutableSetOf<PathData>()
+        val selectedPaths = mutableSetOf<PathData>()
 
         pathsArray.forEach {
-            it.points.forEach{ point ->
-
+            it.points.forEach breaking@ { point ->
                 if ((leftInt - delta..leftInt + delta).contains(point.leftIndentation.toInt())
                     && (topInt - delta..topInt + delta).contains(point.topIndentation.toInt())
                 ) {
-                    removePaths.add(it)
+                    selectedPaths.add(it)
+                    return@breaking
                 }
             }
         }
-        return removePaths
+        return selectedPaths
     }
 }
