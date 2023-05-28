@@ -26,11 +26,10 @@ class DrawingView(context: Context) : View(context) {
     private var topIndentation: Float = 0f
     private var startX: Float = 0f
     private var startY: Float = 0f
-    var currentTool = Tools.CIRCLE
+    var currentTool = Tools.PEN
     private var isDrawing = false
     private var isDrawingEnded = false
     private val TOUCH_TOLERANCE = 4f
-
     private val pathsArray = ArrayList<PathData>()
 
     init {
@@ -69,14 +68,14 @@ class DrawingView(context: Context) : View(context) {
             Tools.CIRCLE -> onTouchEventCircle(event)
             Tools.LINE -> onTouchEventLine(event)
             Tools.PEN -> onTouchEventSmoothLine(event)
-            Tools.ERASER -> onTouchEventEraser(event)
+            Tools.ERASER -> onTouchEventEraser()
+            Tools.MOVE -> onTouchEventMove(event)
         }
         return true
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
         pathsArray.forEach {
             canvas.drawPath(it.path, mPaintFinal)
         }
@@ -92,6 +91,7 @@ class DrawingView(context: Context) : View(context) {
                 Tools.LINE -> onDrawLine(canvas)
                 Tools.PEN -> {}
                 Tools.ERASER -> {}
+                Tools.MOVE -> {}
             }
         }
     }
@@ -151,18 +151,6 @@ class DrawingView(context: Context) : View(context) {
         }
 
         canvas.drawPath(path, paint)
-    }
-
-    /**Eraser*/
-    private fun onTouchEventEraser(event: MotionEvent) {
-        Log.d("TAG11111111", "size = ${pathsArray.size}")
-
-        pathsArray.forEach {
-            Log.d("TAG11111111", "${it.path}")
-        }
-        val removePaths = isMatch(leftIndentation, topIndentation)
-        pathsArray.removeAll(removePaths)
-        invalidate()
     }
 
     /**Line*/
@@ -277,6 +265,37 @@ class DrawingView(context: Context) : View(context) {
                 pathsArray.add(PathData(mPath, points))
                 resetPath()
                 invalidate()
+            }
+        }
+    }
+
+    /**Eraser*/
+    private fun onTouchEventEraser() {
+        val removePaths = isMatch(leftIndentation, topIndentation)
+        pathsArray.removeAll(removePaths)
+        invalidate()
+    }
+
+    /**Move*/
+    private fun onTouchEventMove(event: MotionEvent) {
+//        val movePaths = isMatch(leftIndentation, topIndentation)
+
+        val dx = Math.abs(leftIndentation - startX)
+        val dy = Math.abs(topIndentation - startY)
+        if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = leftIndentation
+                    startY = topIndentation
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    pathsArray.forEach {
+                        it.path.offset(leftIndentation - startX, topIndentation - startY)
+                    }
+                    startX = leftIndentation
+                    startY = topIndentation
+                    invalidate()
+                }
             }
         }
     }

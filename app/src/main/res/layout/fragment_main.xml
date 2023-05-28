@@ -84,6 +84,20 @@
             app:iconPadding="0dp"
             android:layout_weight="1" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/move"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_move"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            android:layout_weight="1" />
+
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
 

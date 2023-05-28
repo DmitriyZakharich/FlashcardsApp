@@ -5,5 +5,6 @@ enum class Tools {
     CIRCLE,
     LINE,
     PEN,
-    ERASER
+    ERASER,
+    MOVE
 }

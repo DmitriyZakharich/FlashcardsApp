@@ -1,5 +1,6 @@
 package com.example.flashcardsapp
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -19,6 +20,7 @@ class MainFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_main, container, false)
     }
 
+    @SuppressLint("ResourceType")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -27,8 +29,8 @@ class MainFragment : Fragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT)
 
-        val l = view.findViewById<LinearLayout>(R.id.ll)
-        l.addView(drawingView)
+        val linearLayout = view.findViewById<LinearLayout>(R.id.ll)
+        linearLayout.addView(drawingView)
 
         view.findViewById<MaterialButtonToggleGroup>(R.id.toggleGroup).addOnButtonCheckedListener{
             toggleButtonGroup, checkedId, isChecked ->
@@ -39,11 +41,10 @@ class MainFragment : Fragment() {
                     R.id.line -> drawingView.currentTool = Tools.LINE
                     R.id.pen ->  drawingView.currentTool = Tools.PEN
                     R.id.eraser -> drawingView.currentTool = Tools.ERASER
+                    R.id.move -> drawingView.currentTool = Tools.MOVE
                 }
-            } else
-                Log.d("23333333", "else")
+            }
         }
-
     }
 
     companion object {
