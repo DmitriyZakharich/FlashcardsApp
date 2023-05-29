@@ -3,10 +3,10 @@ package com.example.flashcardsapp
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathMeasure
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import java.util.LinkedList
@@ -20,6 +20,9 @@ class DrawingView(context: Context) : View(context) {
 
     private var mPaint: Paint = Paint(Paint.DITHER_FLAG)
     private var mPaintFinal: Paint = Paint(Paint.DITHER_FLAG)
+    private var mPaintSelected: Paint = Paint(Paint.DITHER_FLAG)
+    private var fillPaintPreparingToSelect: Paint = Paint(Paint.DITHER_FLAG)
+    private var strokePaintPreparingToSelect: Paint = Paint(Paint.DITHER_FLAG)
     private var mPath = Path()
 
     private var mBitmap: Bitmap? = null
@@ -34,6 +37,7 @@ class DrawingView(context: Context) : View(context) {
     private val TOUCH_TOLERANCE = 4f
     private val pathsArray = LinkedList<PathData>()
     private val selectedPaths = mutableSetOf<PathData>()
+    private val selectedArea = Path()
 
     init {
         mPaint.isAntiAlias = true
@@ -51,6 +55,31 @@ class DrawingView(context: Context) : View(context) {
         mPaintFinal.strokeJoin = Paint.Join.ROUND
         mPaintFinal.strokeCap = Paint.Cap.ROUND
         mPaintFinal.strokeWidth = 10f
+
+        mPaintSelected.isAntiAlias = true
+        mPaintSelected.isDither = true
+        mPaintSelected.color = getContext().resources.getColor(android.R.color.darker_gray)
+        mPaintSelected.style = Paint.Style.STROKE
+        mPaintSelected.strokeJoin = Paint.Join.ROUND
+        mPaintSelected.strokeCap = Paint.Cap.ROUND
+        mPaintSelected.strokeWidth = 5f
+        mPaintSelected.pathEffect = DashPathEffect(floatArrayOf(50F, 10F, 5F, 10F), 0f)
+
+        fillPaintPreparingToSelect.isAntiAlias = true
+        fillPaintPreparingToSelect.isDither = true
+        fillPaintPreparingToSelect.color = getContext().resources.getColor(R.color.fill_select)
+        fillPaintPreparingToSelect.style = Paint.Style.FILL
+        fillPaintPreparingToSelect.strokeJoin = Paint.Join.ROUND
+        fillPaintPreparingToSelect.strokeCap = Paint.Cap.ROUND
+        fillPaintPreparingToSelect.strokeWidth = 5f
+
+        strokePaintPreparingToSelect.isAntiAlias = true
+        strokePaintPreparingToSelect.isDither = true
+        strokePaintPreparingToSelect.color = getContext().resources.getColor(R.color.stroke_select)
+        strokePaintPreparingToSelect.style = Paint.Style.STROKE
+        strokePaintPreparingToSelect.strokeJoin = Paint.Join.ROUND
+        strokePaintPreparingToSelect.strokeCap = Paint.Cap.ROUND
+        strokePaintPreparingToSelect.strokeWidth = 5f
     }
 
     private fun resetPath() {
@@ -87,6 +116,10 @@ class DrawingView(context: Context) : View(context) {
         //Preliminary drawing of SmoothLine
         if (isDrawing)      //TODO Добавить условие CurrentTool == Tools.PEN?
             canvas.drawPath(mPath, mPaint)
+
+        if (selectedPaths.isNotEmpty() && !selectedArea.isEmpty)
+                canvas.drawPath(selectedArea, mPaintSelected)
+
 
         if (isDrawing) {
             when (currentTool) {
@@ -333,19 +366,6 @@ class DrawingView(context: Context) : View(context) {
                 isDrawing = false
                 drawSelectedField(mCanvas!!, mPaint)
 
-//                selectedPaths.forEach {
-//                    it.points.clear()
-//                    val pathMeasure = PathMeasure(it.path, false)
-//                    val distance: Float = pathMeasure.length
-//                    val ignore = 10
-//                    for (i in 0..distance.toInt() step ignore) {
-//                        val pos = FloatArray(2)
-//                        pathMeasure.getPosTan(i.toFloat(), pos, null)
-//                        val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - top, №0 - left
-//                        it.points.add(floatPoint)
-//                    }
-//                }
-
 //                selectedPaths.clear()   //TODO Сделать отмену выделения
             }
         }
@@ -379,7 +399,7 @@ class DrawingView(context: Context) : View(context) {
             var maxBottom = 0f
             var maxRight = 0f
 
-            if (selectedPaths.size > 0) {0
+            if (selectedPaths.size > 0) {
                 maxTop = selectedPaths.first().points.first().topIndentation
                 maxBottom = maxTop
                 maxLeft = selectedPaths.first().points.first().leftIndentation
@@ -394,27 +414,20 @@ class DrawingView(context: Context) : View(context) {
                         if (point.leftIndentation > maxRight) maxRight = point.leftIndentation
                     }
                 }
-
-                val p = Path()
-                p.addRect(maxLeft, maxTop, maxRight, maxBottom, Path.Direction.CW)
-                pathsArray.add(PathData(p, ArrayList()))
+                val additionalSpace = 15f
+                selectedArea.addRect(
+                    maxLeft - additionalSpace,
+                    maxTop - additionalSpace,
+                    maxRight + additionalSpace,
+                    maxBottom + additionalSpace,
+                    Path.Direction.CW)
                 invalidate()
             }
-
-            Log.d("2222deTAG", "size: ${selectedPaths.size}")
-            Log.d("2222deTAG", "maxTop: $maxTop")
-            Log.d("2222deTAG", "maxLeft: $maxLeft")
-            Log.d("2222deTAG", "maxRight: $maxRight")
-            Log.d("2222deTAG", "maxBottom: $maxBottom")
-
-//            selectedPaths.forEach{ logPath ->
-//                Log.d("2222deTAG", "selectedPaths: ${logPath.points}")
-//            }
-
         }
 
         else
-            canvas.drawPath(path, paint)
+            canvas.drawPath(path, fillPaintPreparingToSelect)
+            canvas.drawPath(path, strokePaintPreparingToSelect)
     }
 
     private fun isMatch(left: Float, top: Float): Set<PathData> {
