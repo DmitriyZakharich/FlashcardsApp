@@ -38,7 +38,6 @@ class MainFragment : Fragment() {
                     R.id.line -> drawingView.currentTool = Tools.LINE
                     R.id.pen ->  drawingView.currentTool = Tools.PEN
                     R.id.eraser -> drawingView.currentTool = Tools.ERASER
-                    R.id.move -> drawingView.currentTool = Tools.MOVE
                     R.id.select -> drawingView.currentTool = Tools.SELECT
                 }
             }
