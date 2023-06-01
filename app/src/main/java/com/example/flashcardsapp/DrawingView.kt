@@ -79,6 +79,22 @@ class DrawingView(context: Context) : View(context) {
 
     fun setColor(color: Int) {
         mPaint.color = color
+        if (selectedPaths.isNotEmpty()) {
+            selectedPaths.forEach {
+                it.paint.color = color
+            }
+            invalidate()
+        }
+    }
+
+    fun setWidthSize(width: Float) {
+        mPaint.strokeWidth = width
+        if (selectedPaths.isNotEmpty()) {
+            selectedPaths.forEach {
+                it.paint.strokeWidth = width
+            }
+            invalidate()
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {

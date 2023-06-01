@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import androidx.annotation.ColorInt
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.shawnlin.numberpicker.NumberPicker
 import eltos.simpledialogfragment.SimpleDialog
 import eltos.simpledialogfragment.color.SimpleColorDialog
 
@@ -76,7 +77,33 @@ class MainFragment : Fragment(), SimpleDialog.OnDialogResultListener {
                 .allowCustom(true)
                 .showOutline(SimpleColorDialog.AUTO)
                 .show(this, "DIALOG_TAG")
+        }
 
+        val values = arrayOf(
+            Pair("1", 5f),
+            Pair("2", 10f),
+            Pair("3", 15f),
+            Pair("4", 20f),
+            Pair("5", 25f),
+            Pair("6", 30f),
+            Pair("7", 35f),
+            Pair("8", 40f),
+            Pair("9", 45f),
+            Pair("10", 50f),
+            Pair("11", 55f),
+            Pair("12", 60f),
+            Pair("13", 65f),
+            Pair("14", 70f),
+            Pair("15", 75f)
+        )
+
+        val numberPicker = view.findViewById<NumberPicker>(R.id.number_picker)
+        numberPicker.maxValue = values.size
+        numberPicker.minValue = 1
+        numberPicker.displayedValues = values.map {it.first }.toTypedArray()
+        numberPicker.value = values.size/2
+        numberPicker.setOnValueChangedListener { picker, oldVal, newVal ->
+            drawingView.setWidthSize(values[newVal-1].second)
         }
     }
 

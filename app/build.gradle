@@ -46,6 +46,9 @@ dependencies {
     //Color picker
     implementation 'io.github.eltos:simpledialogfragments:3.6.4'
 
+    //Number picker
+    implementation 'io.github.ShawnLin013:number-picker:2.4.13'
+
 //    //Hilt
 //    implementation "com.google.dagger:hilt-android:2.45"
 //    kapt "com.google.dagger:hilt-compiler:2.45"
