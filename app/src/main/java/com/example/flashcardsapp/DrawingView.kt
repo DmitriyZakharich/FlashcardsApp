@@ -7,7 +7,6 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PathMeasure
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import java.util.LinkedList
@@ -20,7 +19,6 @@ import java.util.LinkedList
 class DrawingView(context: Context) : View(context) {
 
     private var mPaint: Paint = Paint(Paint.DITHER_FLAG)
-    private var mPaintFinal: Paint = Paint(Paint.DITHER_FLAG)
     private var mPaintSelected: Paint = Paint(Paint.DITHER_FLAG)
     private var fillPaintPreparingToSelect: Paint = Paint(Paint.DITHER_FLAG)
     private var strokePaintPreparingToSelect: Paint = Paint(Paint.DITHER_FLAG)
@@ -48,14 +46,6 @@ class DrawingView(context: Context) : View(context) {
         mPaint.strokeJoin = Paint.Join.ROUND
         mPaint.strokeCap = Paint.Cap.ROUND
         mPaint.strokeWidth = 10f
-
-        mPaintFinal.isAntiAlias = true
-        mPaintFinal.isDither = true
-        mPaintFinal.color = getContext().resources.getColor(android.R.color.holo_orange_dark)
-        mPaintFinal.style = Paint.Style.STROKE
-        mPaintFinal.strokeJoin = Paint.Join.ROUND
-        mPaintFinal.strokeCap = Paint.Cap.ROUND
-        mPaintFinal.strokeWidth = 10f
 
         mPaintSelected.isAntiAlias = true
         mPaintSelected.isDither = true
@@ -87,6 +77,10 @@ class DrawingView(context: Context) : View(context) {
         mPath = Path()
     }
 
+    fun setColor(color: Int) {
+        mPaint.color = color
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
@@ -116,7 +110,7 @@ class DrawingView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         pathsArray.forEach {
-            canvas.drawPath(it.path, mPaintFinal)
+            canvas.drawPath(it.path, it.paint)
         }
 
         //Preliminary drawing of SmoothLine
@@ -150,7 +144,7 @@ class DrawingView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
-                drawShape(mCanvas!!, mPaintFinal)
+                drawShape(mCanvas!!, mPaint)
                 invalidate()
             }
         }
@@ -189,7 +183,7 @@ class DrawingView(context: Context) : View(context) {
                 points.add(floatPoint)
             }
 
-            pathsArray.add(PathData(path, points))
+            pathsArray.add(PathData(path, points, paint.clone()))
         }
 
         canvas.drawPath(path, paint)
@@ -215,7 +209,7 @@ class DrawingView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
-                drawLine(mCanvas!!, mPaintFinal)
+                drawLine(mCanvas!!, mPaint)
                 invalidate()
             }
         }
@@ -241,7 +235,7 @@ class DrawingView(context: Context) : View(context) {
                 points.add(floatPoint)
             }
 
-            pathsArray.add(PathData(path, points))
+            pathsArray.add(PathData(path, points, paint.clone()))
         }
         canvas.drawPath(path, paint)
     }
@@ -263,7 +257,7 @@ class DrawingView(context: Context) : View(context) {
             MotionEvent.ACTION_MOVE -> invalidate()
             MotionEvent.ACTION_UP -> {
                 isDrawing = false
-                drawShape(mCanvas!!, mPaintFinal)
+                drawShape(mCanvas!!, mPaint)
                 invalidate()
             }
         }
@@ -304,7 +298,7 @@ class DrawingView(context: Context) : View(context) {
                     val floatPoint = FloatPoint(pos[1], pos[0]) //№1 - from top, №0 - from left
                     points.add(floatPoint)
                 }
-                pathsArray.add(PathData(mPath, points))
+                pathsArray.add(PathData(mPath, points, mPaint.clone()))
                 resetPath()
                 invalidate()
             }
@@ -482,6 +476,9 @@ class DrawingView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * Сделать перемещение по долгому нажатию
+     * или выделение по долгому нажатию*/
 //    private fun onTouchEventMove(event: MotionEvent) {
 //        when (event.action) {
 //            MotionEvent.ACTION_DOWN -> {
@@ -537,4 +534,16 @@ class DrawingView(context: Context) : View(context) {
         }
         return selectedPaths
     }
+}
+
+fun Paint.clone(): Paint {
+    val p = Paint()
+    p.isAntiAlias = isAntiAlias
+    p.isDither = isDither
+    p.color = color
+    p.style = style
+    p.strokeJoin = strokeJoin
+    p.strokeCap = strokeCap
+    p.strokeWidth = strokeWidth
+    return p
 }

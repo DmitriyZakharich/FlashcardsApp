@@ -6,6 +6,5 @@ enum class Tools {
     LINE,
     PEN,
     ERASER,
-//    MOVE,
     SELECT
 }
