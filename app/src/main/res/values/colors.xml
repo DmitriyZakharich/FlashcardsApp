@@ -14,6 +14,7 @@
 
 
     <color name="stroke_select2">#0000FE</color>
+    <color name="transparent">#00FFFFFF</color>
 
 
 </resources>

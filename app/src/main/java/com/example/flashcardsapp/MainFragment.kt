@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.annotation.ColorInt
 import androidx.fragment.app.Fragment
@@ -47,6 +48,7 @@ class MainFragment : Fragment(), SimpleDialog.OnDialogResultListener {
                     R.id.pen ->  drawingView.currentTool = Tools.PEN
                     R.id.eraser -> drawingView.currentTool = Tools.ERASER
                     R.id.select -> drawingView.currentTool = Tools.SELECT
+                    R.id.text -> drawingView.currentTool = Tools.TEXT
                 }
             }
         }
@@ -104,6 +106,15 @@ class MainFragment : Fragment(), SimpleDialog.OnDialogResultListener {
         numberPicker.value = values.size/2
         numberPicker.setOnValueChangedListener { picker, oldVal, newVal ->
             drawingView.setWidthSize(values[newVal-1].second)
+        }
+
+
+        view.findViewById<ImageButton>(R.id.image_button_undo).setOnClickListener {
+            drawingView.undo()
+        }
+
+        view.findViewById<ImageButton>(R.id.image_button_redo).setOnClickListener {
+            drawingView.redo()
         }
     }
 

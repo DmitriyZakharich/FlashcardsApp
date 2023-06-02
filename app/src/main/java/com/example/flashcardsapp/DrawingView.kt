@@ -33,10 +33,12 @@ class DrawingView(context: Context) : View(context) {
     var currentTool = Tools.PEN
     private var isDrawing = false
     private val TOUCH_TOLERANCE = 4f
-    private val pathsArray = LinkedList<PathData>()
+    private var pathsArray = LinkedList<PathData>()
+    private val undoRedoList = LinkedList<LinkedList<PathData>>()
     private val selectedPaths = mutableSetOf<PathData>()
     private val selectedBorder = Path()
     private var isMoving = false
+    private var count = 0
 
     init {
         mPaint.isAntiAlias = true
@@ -119,6 +121,7 @@ class DrawingView(context: Context) : View(context) {
             Tools.PEN -> onTouchEventSmoothLine(event)
             Tools.ERASER -> onTouchEventEraser()
             Tools.SELECT -> onTouchEventSelect(event)
+            Tools.TEXT -> {}//onTouchEventSelect(event)
         }
         return true
     }
@@ -144,6 +147,7 @@ class DrawingView(context: Context) : View(context) {
                 Tools.PEN -> {}
                 Tools.ERASER -> {}
                 Tools.SELECT -> drawSelectedField(canvas)
+                Tools.TEXT -> {}//drawSelectedField(canvas)
             }
         }
     }
@@ -200,6 +204,7 @@ class DrawingView(context: Context) : View(context) {
             }
 
             pathsArray.add(PathData(path, points, paint.clone()))
+            undoRedoList.add(pathsArray.clone() as LinkedList<PathData>)
         }
 
         canvas.drawPath(path, paint)
@@ -252,6 +257,7 @@ class DrawingView(context: Context) : View(context) {
             }
 
             pathsArray.add(PathData(path, points, paint.clone()))
+            undoRedoList.add(pathsArray.clone() as LinkedList<PathData>)
         }
         canvas.drawPath(path, paint)
     }
@@ -315,6 +321,7 @@ class DrawingView(context: Context) : View(context) {
                     points.add(floatPoint)
                 }
                 pathsArray.add(PathData(mPath, points, mPaint.clone()))
+                undoRedoList.add(pathsArray.clone() as LinkedList<PathData>)
                 resetPath()
                 invalidate()
             }
@@ -325,6 +332,7 @@ class DrawingView(context: Context) : View(context) {
     private fun onTouchEventEraser() {
         val removePaths = isMatch(leftIndentation, topIndentation, pathsArray)
         pathsArray.removeAll(removePaths)
+        undoRedoList.add(pathsArray.clone() as LinkedList<PathData>)
         invalidate()
     }
 
@@ -549,6 +557,20 @@ class DrawingView(context: Context) : View(context) {
             }
         }
         return selectedPaths
+    }
+
+    fun undo() {
+        if (undoRedoList.isNotEmpty()) {
+            pathsArray = undoRedoList[undoRedoList.size - 1 - count++].clone() as LinkedList<PathData>
+            invalidate()
+        }
+    }
+
+    fun redo() {
+        if (undoRedoList.isNotEmpty()) {
+            pathsArray = undoRedoList[undoRedoList.size - 1 - count--].clone() as LinkedList<PathData>
+            invalidate()
+        }
     }
 }
 
